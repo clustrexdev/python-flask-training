@@ -1,2 +1,5 @@
 ### core dependencies ###
 flask
+
+### dev dependencies ###
+python-dotenv

@@ -1,14 +1,14 @@
-from flask import Flask, redirect, url_for, request
+from flask import Flask, redirect, url_for, request, render_template
 app = Flask(__name__)
 
 ## Routing and variable rules
-@app.route('/')
-def init():
-   return 'Welcome to python programming'
+# @app.route('/')
+# def index():
+#    return render_template('hello.html')
 
-@app.route('/hello/<name>')
-def hello_name(name):
-   return 'Hello %s!' % name
+@app.route('/hello/<user>')
+def hello_name(user):
+   return render_template('hello.html', name = user)
 
 # @app.route('/addNumber/<int:number1><int:number2>')
 # def getNum(number1, number2) :
@@ -44,6 +44,20 @@ def login():
   else:
     user = request.args.get('nm')
     return redirect(url_for('success',name = user))
+
+@app.route('/calculateScore/<int:score>')
+def calculateScore(score):
+   return render_template('score.html', marks = score)
+
+@app.route('/result',methods = ['POST', 'GET'])
+def result():
+   if request.method == 'POST':
+      result = request.form
+      return render_template("result.html",result = result)
+
+@app.route("/")
+def index():
+   return render_template("index.html")
 
 if __name__ == '__main__':
    app.run(debug = True)

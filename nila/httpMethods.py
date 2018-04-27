@@ -1,6 +1,13 @@
 from flask import Flask, redirect, url_for, request, render_template
+from flask_mail import Mail, Message
 app = Flask(__name__)
-
+app.config['MAIL_SERVER']='smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USERNAME'] = 'snila@clustrex.com'
+app.config['MAIL_PASSWORD'] = '********'
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
+mail = Mail(app)
 ## Routing and variable rules
 # @app.route('/')
 # def index():
@@ -55,9 +62,16 @@ def result():
       result = request.form
       return render_template("result.html",result = result)
 
+# @app.route("/")
+# def index():
+#    return render_template("index.html")
+
 @app.route("/")
 def index():
-   return render_template("index.html")
+   msg = Message('Flask Mail Check', sender = 'nilas116@gmail.com', recipients = ['pram@clustrex.com','kavi@clustrex.com'])
+   msg.body = "Hi I am sending this mail from Flask"
+   mail.send(msg)
+   return "Sent"
 
 if __name__ == '__main__':
    app.run(debug = True)

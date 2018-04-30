@@ -1,7 +1,12 @@
 from flask import Flask, redirect, url_for, request, render_template, make_response, session, abort, flash
 from flask_mail import Mail, Message
 from werkzeug import secure_filename
+from flask_sqlalchemy import SQLAlchemy
+import sqlite3
+from sample import callSample
+from contactForm import ContactForm
 app = Flask(__name__)
+mail = Mail(app)
 app.secret_key = 'nilas random string'
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
@@ -9,8 +14,24 @@ app.config['MAIL_USERNAME'] = 'snila@clustrex.com'
 app.config['MAIL_PASSWORD'] = '********'
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
-mail = Mail(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///students.sqlite3'
+conn = sqlite3.connect('database.db')
+print "Opened database successfully"
 
+db = SQLAlchemy(app)
+class students(db.Model):
+  id = db.Column('student_id', db.Integer, primary_key = True)
+  name = db.Column(db.String(100))
+  city = db.Column(db.String(50))  
+  addr = db.Column(db.String(200))
+  pin = db.Column(db.String(10))
+
+  def __init__(self, name, city, addr, pin):
+    self.name = name
+    self.city = city
+    self.addr = addr
+    self.pin = pin
+# db.create_all()
 
 ## Routing and variable rules
 @app.route('/hello')
@@ -20,7 +41,6 @@ def hello():
 @app.route('/hello/<user>')
 def hello_name(user):
    return render_template('hello.html', name = user)
-
 
 ## URL Building
 @app.route('/admin')
@@ -165,6 +185,81 @@ def upload_file():
       f.save(secure_filename(f.filename))
       return 'file uploaded successfully'
 
+## upload from other
+# app.add_url_rule('/', view_func = callSample)
+
+## WTF
+@app.route('/contact', methods = ['GET', 'POST'])
+def contact():
+   form = ContactForm()
+   
+   if request.method == 'POST':
+      if form.validate() == False:
+         flash('All fields are required.')
+         return render_template('contact.html', form = form)
+      else:
+         return render_template('success.html')
+   elif request.method == 'GET':
+         return render_template('contact.html', form = form)
+
+## Sqlite
+@app.route('/enternew')
+def new_student():
+   return render_template('student1.html')
+
+@app.route('/addrec',methods = ['POST', 'GET'])
+def addrec():
+   msg = "nothing done"
+   if request.method == 'POST':
+      try:
+         nm = request.form['nm']
+         addr = request.form['add']
+         city = request.form['city']
+         pin = request.form['pin']
+         with sqlite3.connect("database.db") as con:
+            cur = con.cursor()
+            cur.execute("INSERT INTO students (name,addr,city,pin) VALUES (?,?,?,?)",(nm,addr,city,pin) )
+            con.commit()
+            msg = "Record successfully added"
+      except:
+         con.rollback()
+         msg = "error in insert operation"
+      
+      finally:
+         return render_template("result.html",msg = msg)
+         con.close()
+
+@app.route('/list')
+def list():
+   con = sqlite3.connect("database.db")
+   con.row_factory = sqlite3.Row
+   
+   cur = con.cursor()
+   cur.execute("select * from students")
+   
+   rows = cur.fetchall(); 
+   return render_template("list.html",rows = rows)
+
+## SqlAlchemy
+@app.route('/')
+def show_all():
+   return render_template('show_all.html', students = students.query.all() )
+
+@app.route('/new', methods = ['GET', 'POST'])
+def new():
+   if request.method == 'POST':
+      if not request.form['name'] or not request.form['city'] or not request.form['addr']:
+         flash('Please enter all the fields', 'error')
+      else:
+         student = students(request.form['name'], request.form['city'],
+            request.form['addr'], request.form['pin'])
+         
+         db.session.add(student)
+         db.session.commit()
+         
+         flash('Record was successfully added')
+         return redirect(url_for('show_all'))
+   return render_template('new.html')
 
 if __name__ == '__main__':
    app.run(debug = True)
